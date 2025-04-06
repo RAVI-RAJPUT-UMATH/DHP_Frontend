@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Language Trends Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: auto 1fr;
+            grid-template-areas:
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background-color: #343a40;
+            color: white;
+            padding: 15px;
+            border-right: 1px solid #495057;
+        }
+
+        .sidebar h2 {
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .language-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .lang-btn {
+            padding: 8px 12px;
+            border: none;
+            background-color: #495057;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+            text-align: left;
+            display: flex;
+            align-items: center;
+        }
+
+        .lang-btn.active {
+            background-color: #007bff;
+        }
+
+        .lang-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .lang-btn input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .top-five-btn {
+            padding: 8px 16px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .top-five-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .compare-btn {
+            padding: 8px 16px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .compare-btn:hover {
+            background-color: #218838;
+        }
+
+        #monthSelect {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .header {
+            grid-area: header;
+            background-color: white;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .header .creator {
+            font-size: 14px;
+            color: #777;
+        }
+
+        .main {
+            grid-area: main;
+            padding: 20px;
+            background-color: white;
+        }
+
+        .chart-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-container h2 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-description {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 10px;
+        }
+
+        .chart-container h2 span {
+            font-size: 14px;
+            color: #777;
+        }
+
+        .report-container p {
+            line-height: 1.6;
+            color: #666;
+        }
+
+        canvas {
+            max-height: 350px;
+            width: 100% !important;
+            height: auto !important;
+        }
+        
+        .developed-by {
+            padding: 8px 16px;
+            border: none;
+            background-color: #f0f0f0; /* Light background */
+            color: #333;
+            border-radius: 4px;
+            cursor: default; /* No cursor on hover */
+            text-align: center;
+            margin-top: 20px; /* Add some space above */
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <h2>Languages</h2>
+            <button class="top-five-btn" onclick="selectTopFive()">Select Top 5</button>
+            <div class="language-buttons" id="languageButtons"></div>
+            <button class="compare-btn" onclick="compareSelected()">Compare Selected</button>
+        </aside>
+        <header class="header">
+            <h1>Programming Language Trends Dashboard</h1>
+            <div class="developed-by">Developed by Ravi Rajput</div>
+        </header>
+        <main class="main">
+            <div class="chart-container">
+                <h2>
+                    Trends Over Time (Line Chart)
+                    <span>1. Trends Over Time</span>
+                </h2>
+                <p class="chart-description">The Line Chart provides a dynamic visualization of how selected programming languages have changed in popularity over the years. You can track their growth, decline, and fluctuations, offering valuable insights into which languages are gaining traction and which are losing popularity. This chart is particularly useful for understanding long-term trends and making data-driven decisions about language choice for projects.</p>
+                <canvas id="lineChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>
+                    Monthly Popularity (Bar Chart)
+                    <span>2. Monthly Popularity</span>
+                </h2>
+                <p class="chart-description">The Bar Chart breaks down the popularity of programming languages by month, giving you a closer look at language usage within specific periods. This allows you to see how languages perform on a monthly basis and identify short-term trends or seasonal patterns. It’s a great tool for developers looking to identify the languages that are trending right now.</p>
+                <canvas id="barChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>
+                    Language Distribution by Month (Pie Chart)
+                    <span>3. Language Distribution by Month</span>
+                </h2>
+                <p class="chart-description">The Pie Chart offers a detailed look at the distribution of languages in a specific month. You can select a month from the dropdown menu, and the chart will display how languages were used during that time. This view is ideal for comparing the relative popularity of languages in a given timeframe.</p>
+                <select id="monthSelect"></select>
+                <canvas id="pieChart"></canvas>
+            </div>
+            <div class="report-container chart-container">
+                <h2>Explore Language Trends Interactively</h2>
+                <p>Dive into the dynamic world of programming language popularity with our interactive dashboard. Visualize trends, compare languages, and discover insights with ease.</p>
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <a href="#top" style="text-decoration: none;"> <svg width="100" height="100" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" stroke="#007bff" stroke-width="4" fill="none" style="cursor: pointer;" />
+                            <path d="M 50 20 L 80 50 L 50 80 L 20 50 Z" fill="#007bff" opacity="0.3" style="cursor: pointer;" />
+                            <text x="50" y="55" font-size="20" text-anchor="middle" fill="#007bff" style="cursor: pointer;">></text>
+                        </svg>
+                    </a>
+                    <p style="font-size: 14px; color: #777;">Tap to return to top</p>
+                </div>
+            
+                <p>Use the interactive controls on the left to select and compare programming languages. Analyze trends over time, monthly popularity, and language distribution.</p>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <div style="font-family: 'Arial', sans-serif; font-weight: bold; font-size: 18px; color: #333; display: inline-block; padding: 8px 16px; border: 2px solid #007bff; border-radius: 20px; background-color: #f0f8ff;">
+                        RR
+                    </div>
+                    <!-- <span style="font-size: 12px; color: #999; margin-left: 10px;">By Ravi Rajput</span> -->
+                </div>
+            </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // JavaScript code remains mostly the same
+        let fullData = {};
+        let topLanguages = [];
+        let lineChartInstance, barChartInstance, pieChartInstance;
+
+        const API_URL = "http://127.0.0.1:5000/api/data";
+        const PIE_API_URL = "http://127.0.0.1:5000/pie_data";
+
+        async function fetchData() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+
+                const labels = data.year_month;
+                delete data.year_month;
+
+                fullData = { labels, data };
+
+                const totals = Object.entries(data).map(([lang, values]) => ({
+                    lang,
+                    total: values.reduce((a, b) => a + b, 0)
+                }));
+
+                topLanguages = totals.sort((a, b) => b.total - a.total).map(obj => obj.lang);
+
+                renderLanguageButtons(topLanguages);
+                populateMonthDropdown(labels);
+
+                // Automatically select and compare the top 5 languages on initial load
+                selectTopFive();
+
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+            }
+        }
+
+        function renderLanguageButtons(languages) {
+            const container = document.getElementById("languageButtons");
+            container.innerHTML = "";
+
+            languages.forEach((lang, i) => {
+                const btn = document.createElement("button");
+                btn.className = "lang-btn";
+
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.id = `lang-${lang}`;
+                btn.appendChild(checkbox);
+
+                const label = document.createElement("label");
+                label.textContent = lang;
+                label.setAttribute("for", `lang-${lang}`);
+                btn.appendChild(label);
+
+                container.appendChild(btn);
+            });
+        }
+
+        function renderAllCharts(selectedLang) {
+            const { labels, data } = fullData;
+            const index = topLanguages.indexOf(selectedLang);
+
+            const dataset = [{
+                label: selectedLang,
+                data: data[selectedLang],
+                borderColor: getHSLColor(index),
+                backgroundColor: getHSLColor(index, 0.2),
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }];
+
+            renderLineChart(labels, dataset);
+            renderBarChart(labels, dataset);
+        }
+
+        function compareSelected() {
+            const selectedLanguages = Array.from(document.querySelectorAll('.lang-btn input[type="checkbox"]:checked'))
+                .map(checkbox => checkbox.id.replace('lang-', ''));
+
+            if (selectedLanguages.length === 0) {
+                alert("Please select at least one language.");
+                return;
+            }
+
+            const { labels, data } = fullData;
+
+            const datasets = selectedLanguages.map((lang, index) => ({
+                label: lang,
+                data: data[lang],
+                borderColor: getHSLColor(index),
+                backgroundColor: getHSLColor(index, 0.2),
+                borderWidth: 2,
+                fill: false,
+                tension: 0.3
+            }));
+
+            renderLineChart(labels, datasets);
+            renderBarChart(labels, datasets);
+        }
+
+        function selectTopFive() {
+            const checkboxes = document.querySelectorAll('.lang-btn input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            const top5 = topLanguages.slice(0, 5);
+            checkboxes.forEach(checkbox => {
+                const lang = checkbox.id.replace('lang-', '');
+                if (top5.includes(lang)) {
+                    checkbox.checked = true;
+                }
+            });
+
+            compareSelected();
+        }
+
+        function getHSLColor(index, alpha = 1) {
+            const hue = (index * 60) % 360;
+            return `hsla(${hue}, 70%, 55%, ${alpha})`;
+        }
+
+        async function fetchPieData(month) {
+            try {
+                const response = await fetch(`${PIE_API_URL}?month=${month}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error("Pie chart error:", data.error);
+                    return;
+                }
+
+                renderPieChart(data.labels, data.values);
+            } catch (error) {
+                console.error("Error loading pie data:", error);
+            }
+        }
+
+        function renderLineChart(labels, datasets) {
+            const ctx = document.getElementById("lineChart").getContext("2d");
+            if (lineChartInstance) lineChartInstance.destroy();
+            lineChartInstance = new Chart(ctx, {
+                type: "line",
+                data: { labels, datasets },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function renderBarChart(labels, datasets) {
+            const ctx = document.getElementById("barChart").getContext("2d");
+            if (barChartInstance) barChartInstance.destroy();
+            barChartInstance = new Chart(ctx, {
+                type: "bar",
+                data: { labels, datasets },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function renderPieChart(labels, values) {
+            const ctx = document.getElementById("pieChart").getContext("2d");
+            if (pieChartInstance) pieChartInstance.destroy();
+            pieChartInstance = new Chart(ctx, {
+                type: "pie",
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: labels.map(lang =>
+                            getHSLColor(topLanguages.indexOf(lang) >= 0 ? topLanguages.indexOf(lang) : 0)
+                        )
+                    }]
+                }
+            });
+        }
+
+        function populateMonthDropdown(months) {
+            const dropdown = document.getElementById("monthSelect");
+            dropdown.innerHTML = "";
+
+            months.forEach(month => {
+                const option = document.createElement("option");
+                option.value = month;
+                option.textContent = month;
+                dropdown.appendChild(option);
+            });
+
+            dropdown.addEventListener("change", () => {
+                fetchPieData(dropdown.value);
+            });
+
+            fetchPieData(months[months.length - 1]);
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
